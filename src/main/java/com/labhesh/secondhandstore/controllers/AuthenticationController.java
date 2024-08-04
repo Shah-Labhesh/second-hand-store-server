@@ -1,6 +1,5 @@
 package com.labhesh.secondhandstore.controllers;
 
-
 import com.labhesh.secondhandstore.dtos.InitiateDto;
 import com.labhesh.secondhandstore.dtos.LoginDto;
 import com.labhesh.secondhandstore.dtos.RegisterDto;
@@ -9,14 +8,13 @@ import com.labhesh.secondhandstore.dtos.VerifyDto;
 import com.labhesh.secondhandstore.exception.BadRequestException;
 import com.labhesh.secondhandstore.exception.InternalServerException;
 import com.labhesh.secondhandstore.service.AuthenticationService;
+import com.labhesh.secondhandstore.utils.SuccessResponse;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
 
 @RequiredArgsConstructor
 @RestController
@@ -32,18 +30,21 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody @Valid RegisterDto dto) throws BadRequestException, InternalServerException {
+    public ResponseEntity<?> register(@RequestBody @Valid RegisterDto dto)
+            throws BadRequestException, InternalServerException {
         return authenticationService.register(dto);
     }
 
     @PostMapping("/initiate-email-verification")
-    public ResponseEntity<?> initEmailVerification(@RequestBody @Valid InitiateDto dto) throws BadRequestException{
-        return authenticationService.initiateEmailVerification(dto);
+    public ResponseEntity<?> initEmailVerification(@RequestBody @Valid InitiateDto dto) throws BadRequestException {
+        authenticationService.initiateEmailVerification(dto);
+        return ResponseEntity.ok(new SuccessResponse("Email verification link sent to your email", null, null));
     }
 
     @PostMapping("/resend-email-verification")
     public ResponseEntity<?> resendEmailVerification(@RequestBody @Valid InitiateDto dto) throws BadRequestException {
-        return authenticationService.resendEmailVerification(dto);
+        authenticationService.resendEmailVerification(dto);
+        return ResponseEntity.ok(new SuccessResponse("Email verification link sent to your email", null, null));
     }
 
     @PostMapping("/verify-email")
@@ -53,12 +54,14 @@ public class AuthenticationController {
 
     @PostMapping("/initiate-reset-password")
     public ResponseEntity<?> forgotPassword(@RequestBody @Valid InitiateDto dto) throws BadRequestException {
-        return authenticationService.initiatePasswordReset(dto);
+        authenticationService.initiatePasswordReset(dto);
+        return ResponseEntity.ok(new SuccessResponse("Password reset link sent to your email", null, null));
     }
 
     @PostMapping("/resend-reset-password")
     public ResponseEntity<?> resendForgotPassword(@RequestBody @Valid InitiateDto dto) throws BadRequestException {
-        return authenticationService.resendPasswordReset(dto);
+        authenticationService.resendPasswordReset(dto);
+        return ResponseEntity.ok(new SuccessResponse("Password reset link sent to your email", null, null));
     }
 
     @PostMapping("/verify-reset-password")
@@ -70,5 +73,5 @@ public class AuthenticationController {
     public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordDto dto) throws BadRequestException {
         return authenticationService.resetPassword(dto);
     }
-    
+
 }

@@ -23,6 +23,8 @@ import com.labhesh.secondhandstore.utils.SuccessResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
+@EnableAsync
 public class AuthenticationService {
 
     private final UserRepo userRepo;
@@ -84,7 +87,8 @@ public class AuthenticationService {
         }
     }
 
-    public ResponseEntity<?> initiateEmailVerification(InitiateDto dto) throws BadRequestException {
+    @Async
+    public void initiateEmailVerification(InitiateDto dto) throws BadRequestException {
         Users user = userRepo.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new BadRequestException("User don't exist"));
         if (user.isVerified()) {
@@ -99,11 +103,11 @@ public class AuthenticationService {
         otpRepo.save(otp);
         // send email verification link
         mailService.sendOtpEmail(user.getEmail(), user.getName(), otp.getOtp(), OtpType.EMAIL_VERIFICATION);
-        return ResponseEntity.ok(new SuccessResponse("Email verification link sent to your email", null, null));
     }
 
     // resend email verification
-    public ResponseEntity<?> resendEmailVerification(InitiateDto dto) throws BadRequestException {
+    @Async
+    public void resendEmailVerification(InitiateDto dto) throws BadRequestException {
         Users user = userRepo.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new BadRequestException("User don't exist"));
         if (user.isVerified()) {
@@ -117,7 +121,6 @@ public class AuthenticationService {
         otpRepo.save(otp);
         // send email verification link
         mailService.sendOtpEmail(user.getEmail(), user.getName(), otp.getOtp(), OtpType.EMAIL_VERIFICATION);
-        return ResponseEntity.ok(new SuccessResponse("Email verification link sent to your email", null, null));
     }
 
     // Verify email
@@ -127,6 +130,7 @@ public class AuthenticationService {
         if (user.isVerified()) {
             throw new BadRequestException("User is already verified");
         }
+        System.out.println(dto.getOtp());
         Otp otp = otpRepo.findByEmailAndOtpAndType(dto.getEmail(), dto.getOtp(), OtpType.EMAIL_VERIFICATION)
                 .orElseThrow(() -> new BadRequestException("Invalid OTP"));
         if (otp.isExpired()) {
@@ -138,7 +142,8 @@ public class AuthenticationService {
     }
 
     // initiate password reset
-    public ResponseEntity<?> initiatePasswordReset(InitiateDto dto) throws BadRequestException {
+    @Async
+    public void initiatePasswordReset(InitiateDto dto) throws BadRequestException {
         Users user = userRepo.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new BadRequestException("User don't exist"));
         Otp otp = Otp.builder()
@@ -150,11 +155,11 @@ public class AuthenticationService {
         otpRepo.save(otp);
         // send email verification link
         mailService.sendOtpEmail(user.getEmail(), user.getName(), otp.getOtp(), OtpType.PASSWORD_RESET);
-        return ResponseEntity.ok(new SuccessResponse("Password reset link sent to your email", null, null));
     }
 
     // resend password reset
-    public ResponseEntity<?> resendPasswordReset(InitiateDto dto) throws BadRequestException {
+    @Async
+    public void resendPasswordReset(InitiateDto dto) throws BadRequestException {
         Users user = userRepo.findByEmail(dto.getEmail()).orElseThrow(() -> new BadRequestException("User don't exist"));
         Otp otp = otpRepo.findByEmailAndOtpType(dto.getEmail(), OtpType.PASSWORD_RESET)
                 .orElseThrow(() -> new BadRequestException("OTP not found"));
@@ -164,7 +169,6 @@ public class AuthenticationService {
         otpRepo.save(otp);
         // send email verification link
         mailService.sendOtpEmail(user.getEmail(), user.getName(), otp.getOtp(), OtpType.PASSWORD_RESET);
-        return ResponseEntity.ok(new SuccessResponse("Password reset link sent to your email", null, null));
     }
 
     // verify password reset

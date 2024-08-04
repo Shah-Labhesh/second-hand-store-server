@@ -33,7 +33,6 @@ public class SecurityConfiguration {
                                                                 new AntPathRequestMatcher("/swagger-ui.html"),
                                                                 new AntPathRequestMatcher("/api/auth/**"),
                                                                 new AntPathRequestMatcher("/api/image/**"),
-                                                                // new AntPathRequestMatcher("/verify/**"),
                                                                 new AntPathRequestMatcher("/api/item/**"),
                                                                 new AntPathRequestMatcher("/api/item/review/**"),
                                                                 new AntPathRequestMatcher("/chat/**"))

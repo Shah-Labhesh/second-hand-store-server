@@ -2,6 +2,7 @@ package com.labhesh.secondhandstore.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -56,38 +57,46 @@ public class CartService {
         return cart;
     }
 
-    // add Item to cart
     public ResponseEntity<?> addItemToCart(CartItemDto dto) throws BadRequestException, InternalServerException {
         try {
-            Cart userCart = cart();
-        Item item = itemRepo.findItem(UUID.fromString(dto.getItemId()))
-                .orElseThrow(() -> new BadRequestException("Item not found or has been deleted"));
-        List<CartItem> cartItems = userCart.getCartItems();
-        cartItems.forEach(cartItem -> {
-            if (cartItem.getItem().getId().equals(item.getId())) {
+            Cart userCart = cart(); // Assuming this method fetches the current user's cart
+            Item item = itemRepo.findItem(UUID.fromString(dto.getItemId()))
+                    .orElseThrow(() -> new BadRequestException("Item not found or has been deleted"));
+
+            List<CartItem> cartItems = userCart.getCartItems();
+            Optional<CartItem> existingCartItem = cartItems.stream()
+                    .filter(cartItem -> cartItem.getItem().getId().equals(item.getId()))
+                    .findFirst();
+
+            if (existingCartItem.isPresent()) {
+                CartItem cartItem = existingCartItem.get();
                 cartItem.setQuantity(cartItem.getQuantity() + dto.getQuantity());
                 cartItemsRepo.save(cartItem);
-                return;
             } else {
-                CartItem newItem = CartItem.builder()
-                        .cart(userCart)
-                        .item(item)
-                        .quantity(dto.getQuantity())
-                        .build();
+                CartItem newItem = createCartItem(userCart, item, dto.getQuantity());
                 cartItemsRepo.save(newItem);
                 cartItems.add(newItem);
             }
-        });
-        userCart.setCartItems(cartItems);
-        cartRepo.save(userCart);
-        return ResponseEntity.ok(new SuccessResponse("Item added to cart successfully", userCart, null));
+
+            userCart.setCartItems(cartItems);
+            cartRepo.save(userCart);
+
+            return ResponseEntity.ok(new SuccessResponse("Item added to cart successfully", userCart, null));
         } catch (BadRequestException e) {
             throw new BadRequestException(e.getMessage());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new InternalServerException(e.getMessage());
         }
     }
+
+    private CartItem createCartItem(Cart cart, Item item, int quantity) {
+        return CartItem.builder()
+                .cart(cart)
+                .item(item)
+                .quantity(quantity)
+                .build();
+    }
+
 
     // update cart item
     public ResponseEntity<?> updateCartItem(UpdateCartItemDto dto) throws BadRequestException, InternalServerException {
@@ -159,9 +168,7 @@ public class CartService {
     public ResponseEntity<?> checkoutCart(CheckOutCartDto dto) throws BadRequestException {
         Cart userCart = cart();
         List<CartItem> cartItems = userCart.getCartItems();
-        cartItemsRepo.deleteAll(cartItems);
-        userCart.setCartItems(null);
-        cartRepo.save(userCart);
+        cartRepo.delete(userCart);
 
         Order order = Order.builder()
                 .orderDate(LocalDateTime.now())
@@ -169,6 +176,9 @@ public class CartService {
                 .user(userCart.getUser())
                 .build();
         List<OrderItem> orderItems = castToOrderItems(cartItems);
+        if (orderItems.isEmpty()) {
+            throw new BadRequestException("Cart is empty");
+        }
         orderItems.forEach(
                 item -> {
                     item.setOrder(order);
